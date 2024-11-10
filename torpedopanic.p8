@@ -9,7 +9,7 @@ __lua__
 #include chunky_tank.p8l
 
 -- globals
-local _dithers,_cam,_plyr,_entities={}
+local _dithers,_camera,_player,_torpedos={}
 
 -->8
 -- maths
@@ -190,7 +190,7 @@ end
 
 -->8
 -- cam & game objects
-function make_cam()
+function make_camera()
  local up={0,1,0}
  local fwd={0,0,1}
  return {
@@ -292,15 +292,12 @@ function make_player(x,y,z)
   velocity={0,0,0},
   tilt=0.0,
   htilt=0.0,
-  model=make_3dobject({x,y,z},chunky_tank),
+  pcad=make_pcad({x,y,z},chunky_tank),
   m=make_m_from_euler(0,0,0),
   update=function(self)     
-   -- damping
    v_scale(self.dangle,0.6)
    v_scale(self.velocity,0.7)
 
-   --dangle=v_add(dangle,{stat(39),stat(38),0})
-   self.dangle=v_add(self.dangle,{0,stat(38),0})
    self.angle=v_add(self.angle,self.dangle,1/1024)
 
    -- move
@@ -328,20 +325,20 @@ function make_player(x,y,z)
    self.pos=v_add(self.pos,self.velocity)
    self.m=make_m_from_euler(unpack(self.angle))
 
-   self.model.pos=self.pos
+   self.pcad.pos=self.pos
    -- the model rotation can be slightly different
    -- than the player rotation
-   self.model.rot[1]=self.angle[1]+self.htilt/8.0
-   self.model.rot[2]=self.angle[2]-0.25-self.htilt/4.0
-   self.model.rot[3]=self.angle[3]+self.tilt/10.0
-   self.model:update()
+   self.pcad.rot[1]=self.angle[1]+self.htilt/8.0
+   self.pcad.rot[2]=self.angle[2]-0.25-self.htilt/4.0
+   self.pcad.rot[3]=self.angle[3]+self.tilt/10.0
+   self.pcad:update()
   end
  }
 end
 
--- create a game object with a 3d model
+-- pcads are wrappers around picocad models
 local _loaded={}
-function make_3dobject(pos,model)
+function make_pcad(pos,model)
  if not _loaded[model] then
   -- set normals (not stored in model)  
   for _,part in pairs(model) do
@@ -424,24 +421,24 @@ function _init()
   _dithers[(j-1)*2]=dithered_fade
  end
 
- _cam=make_cam()
- _plyr=make_player(5,0,0)
- _entities={}
+ _camera=make_camera()
+ _player=make_player(5,0,0)
+ _torpedos={}
  for x=0,4 do
   for z=0,4 do
-   add(_entities, make_3dobject({x*20,0,z*20},chunky_tank))
+   add(_torpedos, make_pcad({x*20,0,z*20},chunky_tank))
   end
  end
 end
 
 function _update()
- _plyr:update()
+ _player:update()
 
- for _,e in pairs(_entities) do
-  e:update()
+ for t in all(_torpedos) do
+  t:update()
  end
 
- _cam:track(_plyr.pos,_plyr.m)
+ _camera:track(_player.pos,_player.m)
 end
 
 function _draw()
@@ -450,23 +447,21 @@ function _draw()
  -- dithered fill mode
  fillp(0xa5a5|0b0.011)
 
- -- collect drawables
  local drawables={}
 
- -- player
- local p=m_x_v(_cam.m,_plyr.model.pos)
- add(drawables,{model=_plyr.model.model,m=_plyr.model.m,key=-p[3]})
+ local p=m_x_v(_camera.m,_player.pcad.pos)
+ add(drawables,{model=_player.pcad.model,m=_player.pcad.m,key=-p[3]})
 
- -- entities
- for _,e in pairs(_entities) do
-  local p=m_x_v(_cam.m,e.pos)
-  add(drawables,{model=e.model,m=e.m,key=-p[3]})
+ for t in all(_torpedos) do
+  local p=m_x_v(_camera.m,t.pos)
+  add(drawables,{model=t.model,m=t.m,key=-p[3]})
  end
+ 
  -- global sort
  sort(drawables)
  -- draw
- for _,d in ipairs(drawables) do
-  _cam:draw(d.model,d.m)
+ for d in all(drawables) do
+  _camera:draw(d.model,d.m)
  end
 end
 
