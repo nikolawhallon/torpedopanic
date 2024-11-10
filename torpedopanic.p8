@@ -283,14 +283,13 @@ function make_camera()
  }
 end
 
--- basic fps controller
 function make_player(x,y,z)
  return {
   pos={x,y,z},
   angle={0,0,0},
   dangle={0,0,0},
   velocity={0,0,0},
-  tilt=0.0,
+  vtilt=0.0,
   htilt=0.0,
   pcad=make_pcad({x,y,z},chunky_tank),
   m=make_m_from_euler(0,0,0),
@@ -300,7 +299,7 @@ function make_player(x,y,z)
 
    self.angle=v_add(self.angle,self.dangle,1/1024)
 
-   -- move
+   -- handle input
    local dx,dz,a=0,self.angle[1],self.angle[2]
    if(btn(4,0)) dz=1
    if btn(1,0) and btn(4,0) then
@@ -313,24 +312,25 @@ function make_player(x,y,z)
     self.htilt=0.0
    end
    if btn(2,0) and btn(4,0) then
-    self.tilt=-0.6
+    self.vtilt=-0.6
    elseif btn(3,0) and btn(4,0) then
-    self.tilt=0.6
+    self.vtilt=0.6
    else
-    self.tilt=0.0
+    self.vtilt=0.0
    end
    -- update pos and m
    local c,s=cos(a),-sin(a)
-   self.velocity=v_add(self.velocity,{dz*s-dx*c,self.tilt,dz*c+dx*s},1/8)
+   self.velocity=v_add(self.velocity,{dz*s-dx*c,self.vtilt,dz*c+dx*s},1/8)
    self.pos=v_add(self.pos,self.velocity)
    self.m=make_m_from_euler(unpack(self.angle))
 
+   -- update pcad pos and m
    self.pcad.pos=self.pos
    -- the model rotation can be slightly different
    -- than the player rotation
    self.pcad.rot[1]=self.angle[1]+self.htilt/8.0
    self.pcad.rot[2]=self.angle[2]-0.25-self.htilt/4.0
-   self.pcad.rot[3]=self.angle[3]+self.tilt/10.0
+   self.pcad.rot[3]=self.angle[3]+self.vtilt/10.0
    self.pcad:update()
   end
  }
@@ -360,22 +360,15 @@ function make_pcad(pos,model)
   _loaded[model]=true
  end
 
- local rotv=(1-rnd(2))/8
- rotv=0
  return {
   pos=pos,
   rot={0,0,0},
   model=model,
   update=function(self)
-   -- todo: set pos & rotation according to game rules
-   -- example:
-   --self.rot[2]=rotv*time()
-
    -- rotation
    local m=make_m_from_euler(unpack(self.rot))
    -- translation
    m_set_pos(m,self.pos)
-
    -- attach updated matrix
    self.m=m
   end
