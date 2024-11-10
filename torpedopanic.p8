@@ -285,9 +285,6 @@ end
 
 -- basic fps controller
 function make_player(x,y,z)
- --local angle,dangle={0,0,0},{0,0,0}
- --local velocity={0,0,0,}
-
  return {
   pos={x,y,z},
   angle={0,0,0},
@@ -295,6 +292,7 @@ function make_player(x,y,z)
   velocity={0,0,0},
   tilt=0.0,
   htilt=0.0,
+  model=make_3dobject({x,y,z},chunky_tank),
   m=make_m_from_euler(0,0,0),
   update=function(self)     
    -- damping
@@ -329,6 +327,14 @@ function make_player(x,y,z)
    self.velocity=v_add(self.velocity,{dz*s-dx*c,self.tilt,dz*c+dx*s},1/8)
    self.pos=v_add(self.pos,self.velocity)
    self.m=make_m_from_euler(unpack(self.angle))
+
+   self.model.pos=self.pos
+   -- the model rotation can be slightly different
+   -- than the player rotation
+   self.model.rot[1]=self.angle[1]+self.htilt/8.0
+   self.model.rot[2]=self.angle[2]-0.25-self.htilt/4.0
+   self.model.rot[3]=self.angle[3]+self.tilt/10.0
+   self.model:update()
   end
  }
 end
@@ -419,10 +425,8 @@ function _init()
  end
 
  _cam=make_cam()
- _plyr=make_player(0,5,-10)
- _entities={
-  make_3dobject({5,0,0},chunky_tank),
- }
+ _plyr=make_player(5,0,0)
+ _entities={}
  for x=0,4 do
   for z=0,4 do
    add(_entities, make_3dobject({x*20,0,z*20},chunky_tank))
@@ -432,22 +436,12 @@ end
 
 function _update()
  _plyr:update()
- _entities[1].pos[1]=_plyr.pos[1]---15*sin(_plyr.angle[2])
- _entities[1].pos[2]=_plyr.pos[2]---5
- _entities[1].pos[3]=_plyr.pos[3]--+15*cos(_plyr.angle[2])
- _entities[1].rot[1]=_plyr.angle[1]+_plyr.htilt/8.0
- _entities[1].rot[2]=_plyr.angle[2]-0.25-_plyr.htilt/4.0
- _entities[1].rot[3]=_plyr.angle[3]+_plyr.tilt/10.0
-
- -- player and entity angles differ because
- -- i want the model to rotate slightly differently
- -- than the orientation
 
  for _,e in pairs(_entities) do
   e:update()
  end
 
- _cam:track(_entities[1].pos,_plyr.m)
+ _cam:track(_plyr.pos,_plyr.m)
 end
 
 function _draw()
@@ -456,8 +450,14 @@ function _draw()
  -- dithered fill mode
  fillp(0xa5a5|0b0.011)
 
- -- collect entities
+ -- collect drawables
  local drawables={}
+
+ -- player
+ local p=m_x_v(_cam.m,_plyr.model.pos)
+ add(drawables,{model=_plyr.model.model,m=_plyr.model.m,key=-p[3]})
+
+ -- entities
  for _,e in pairs(_entities) do
   local p=m_x_v(_cam.m,e.pos)
   add(drawables,{model=e.model,m=e.m,key=-p[3]})
