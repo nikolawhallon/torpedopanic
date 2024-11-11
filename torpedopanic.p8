@@ -8,6 +8,8 @@ __lua__
 #include poly.lua
 #include chunky_tank.p8l
 #include submarine.p8l
+#include cube.p8l
+#include monolith.p8l
 
 -- globals
 local _dithers,_camera,_player,_torpedos={}
@@ -427,10 +429,22 @@ function _init()
  _player=make_player(5,0,0)
  _torpedos={}
  for x=0,2 do
-  for z=0,0 do
-   add(_torpedos, make_pcad({x*20,0,z*20},submarine))
+  for z=0,2 do
+   for y=0,2 do
+    add(_torpedos, make_pcad({x*40,y*40,z*40},cube))
+   end
   end
  end
+
+ local s=400
+ add(_torpedos, make_pcad({s,-s/2,-s},monolith))
+ add(_torpedos, make_pcad({s,-s/2,s},monolith))
+ add(_torpedos, make_pcad({s,s/2,-s},monolith))
+ add(_torpedos, make_pcad({s,s/2,s},monolith))
+ add(_torpedos, make_pcad({-s,-s/2,s},monolith))
+ add(_torpedos, make_pcad({-s,-s/2,-s},monolith))
+ add(_torpedos, make_pcad({-s,s/2,s},monolith))
+ add(_torpedos, make_pcad({-s,s/2,-s},monolith))
 end
 
 function _update()
