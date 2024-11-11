@@ -37,7 +37,7 @@ function polyline(v,c)
 	end
 end
 
-function tpoly(v,uv)
+function tpoly(v,uv,tex_ofs)
 	local p0,spans=v[#v],{}
 	local x0,y0=p0.x,p0.y
 	local u0,v0=uv[#uv-1],uv[#uv]
@@ -70,7 +70,10 @@ function tpoly(v,uv)
 					-- pixel perfect sampling
 					local sa,dab=ca-a,b-a
 					local dau,dav=(bu-au)/dab,(bv-av)/dab
-					tline(ca,y,cb,y,au+sa*dau,av+sa*dav,dau,dav)
+					local tex_ofs=tex_ofs or 0
+					local mx=au+sa*dau+tex_ofs%16
+					local my=av+sa*dav+(tex_ofs-tex_ofs%16)/16
+					tline(ca,y,cb,y,mx,my,dau,dav)
 				end
 			else
 				spans[y]={x0,u0,v0}
